@@ -16,7 +16,7 @@ dependencies = [
 [project.scripts]
 fluvilog = "fluvilog.cli:main"
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pyright",
     "ruff",
