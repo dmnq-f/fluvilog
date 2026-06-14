@@ -33,7 +33,7 @@ def parse_interval(text: str) -> float:
     return seconds
 
 
-def serve(
+def collect(
     station_codes: list[str],
     parameter_idx: list[int],
     storage: Storage,
@@ -60,7 +60,7 @@ def serve(
     signal.signal(signal.SIGTERM, _handle)
 
     log.info(
-        "serving %d station(s) × %d parameter(s), every %.0fs",
+        "collecting %d station(s) × %d parameter(s), every %.0fs",
         len(station_codes),
         len(parameter_idx),
         interval,

@@ -1,7 +1,7 @@
 """Persistence backends for water-quality readings.
 
 Defines the Storage interface and a stdlib-sqlite3 implementation. Other SQL
-backends can be added by implementing Storage without touching the serve loop.
+backends can be added by implementing Storage without touching the collect loop.
 """
 
 import abc
@@ -9,10 +9,13 @@ import datetime as dt
 import os
 import sqlite3
 from itertools import repeat
+from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pandas as pd
 
 from .constants import (
+    BERLIN_TZ,
     PARAMETERS,
     STATIONS,
     TABLE_PARAMETERS,
@@ -20,6 +23,7 @@ from .constants import (
     TABLE_STATIONS,
     VIEW_READINGS_FULL,
 )
+from .records import ReadingRecord
 
 
 class IncompatibleSchemaError(Exception):
@@ -72,12 +76,46 @@ _INSERT = (
 )
 
 _ISO = "%Y-%m-%dT%H:%M:%S"
+_BERLIN = ZoneInfo(BERLIN_TZ)
+
+
+def _to_db_ts(value: dt.datetime) -> str:
+    """Normalise a window bound to naive Europe/Berlin ISO text for querying.
+
+    Naive input is interpreted as Europe/Berlin; aware input is converted to it.
+    """
+    if value.tzinfo is not None:
+        value = value.astimezone(_BERLIN)
+    return value.strftime(_ISO)
+
+
+def _from_db_ts(text: str) -> dt.datetime:
+    """Parse stored naive ISO text into a tz-aware Europe/Berlin datetime."""
+    return dt.datetime.strptime(text, _ISO).replace(tzinfo=_BERLIN)
+
+
+def _filter_conditions(
+    station_codes: list[str] | None, parameters: list[str] | None
+) -> tuple[list[str], list[str]]:
+    """Build SQL conditions and bind params for the station/parameter filters.
+
+    None or empty lists yield no condition for that dimension.
+    """
+    conditions: list[str] = []
+    params: list[str] = []
+    if station_codes:
+        conditions.append(f"code IN ({', '.join('?' * len(station_codes))})")
+        params.extend(station_codes)
+    if parameters:
+        conditions.append(f"parameter IN ({', '.join('?' * len(parameters))})")
+        params.extend(parameters)
+    return conditions, params
 
 
 class Storage(abc.ABC):
     """Backend that persists readings keyed by (code, parameter, timestamp).
 
-    Implementations are not required to be thread-safe; the serve loop uses one
+    Implementations are not required to be thread-safe; the collect loop uses one
     instance from a single thread. Usable as a context manager: __enter__ calls
     init_schema, __exit__ calls close.
     """
@@ -92,6 +130,41 @@ class Storage(abc.ABC):
 
         df has fetch_history() columns. Rows whose (code, parameter, timestamp)
         already exist are skipped; rows with a missing timestamp are dropped.
+        """
+
+    @abc.abstractmethod
+    def latest_readings(
+        self,
+        *,
+        station_codes: list[str] | None = None,
+        parameters: list[str] | None = None,
+    ) -> list[ReadingRecord]:
+        """Most recent stored reading per (station, parameter).
+
+        station_codes/parameters: None or empty applies no filter on that
+        dimension; filters combine as AND across the two dimensions, OR within
+        each list. At most one row per (station_code, parameter), chosen by
+        greatest timestamp — its value is returned even if None ("latest" means
+        latest stored row, not latest non-null). Returns [] when nothing
+        matches; never raises on absent data. Returned timestamps are tz-aware
+        Europe/Berlin.
+        """
+
+    @abc.abstractmethod
+    def readings_in_window(
+        self,
+        start: dt.datetime,
+        end: dt.datetime,
+        *,
+        station_codes: list[str] | None = None,
+        parameters: list[str] | None = None,
+    ) -> list[ReadingRecord]:
+        """All stored readings with start <= timestamp <= end (inclusive).
+
+        Bounds may be tz-aware or naive; naive is interpreted as Europe/Berlin.
+        Filtering matches latest_readings. Does not cap the window size (that
+        guard lives in the API tier). Returns [] when nothing matches; returned
+        timestamps are tz-aware Europe/Berlin.
         """
 
     @abc.abstractmethod
@@ -116,17 +189,35 @@ class SqliteStorage(Storage):
     written data. Reading timestamps are stored as naive local
     (Europe/Berlin) ISO 8601; fetched_at is UTC.
 
-    Single-writer: do not run two serve processes against one database file.
+    Single-writer: do not run two collect processes against one database file.
     WAL is enabled so a concurrent reader never blocks the writer.
 
     The schema is tracked by PRAGMA user_version; init_schema raises
     IncompatibleSchemaError if a file's version is unsupported by this build.
     """
 
-    def __init__(self, path: str | os.PathLike[str]) -> None:
+    def __init__(
+        self, path: str | os.PathLike[str], *, read_only: bool = False
+    ) -> None:
         self._path = os.fspath(path)
-        self._conn = sqlite3.connect(self._path)
+        self._read_only = read_only
+        if read_only:
+            uri = f"{Path(self._path).resolve().as_uri()}?mode=ro"
+            self._conn = sqlite3.connect(uri, uri=True, check_same_thread=False)
+        else:
+            self._conn = sqlite3.connect(self._path)
         self._param_ids: dict[str, int] | None = None
+
+    @classmethod
+    def open_readonly(cls, path: str | os.PathLike[str]) -> "SqliteStorage":
+        """Open an existing database read-only, skipping init_schema.
+
+        For concurrent readers (e.g. the HTTP API) against the single-writer
+        database: schema ownership stays with the poller, and under WAL a reader
+        never blocks the writer. The file must already exist. Writing through the
+        returned instance fails.
+        """
+        return cls(path, read_only=True)
 
     def init_schema(self) -> None:
         self._conn.execute("PRAGMA foreign_keys=ON")
@@ -215,6 +306,54 @@ class SqliteStorage(Storage):
         self._conn.executemany(_INSERT, rows)
         self._conn.commit()
         return self._conn.total_changes - before
+
+    def latest_readings(
+        self,
+        *,
+        station_codes: list[str] | None = None,
+        parameters: list[str] | None = None,
+    ) -> list[ReadingRecord]:
+        conditions, params = _filter_conditions(station_codes, parameters)
+        where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+        sql = (
+            "SELECT code, parameter, unit, timestamp, value FROM ("
+            " SELECT code, parameter, unit, timestamp, value,"
+            " ROW_NUMBER() OVER ("
+            " PARTITION BY code, parameter ORDER BY timestamp DESC) AS rn"
+            f" FROM {VIEW_READINGS_FULL}{where}"
+            ") WHERE rn = 1"
+        )
+        return self._read(sql, params)
+
+    def readings_in_window(
+        self,
+        start: dt.datetime,
+        end: dt.datetime,
+        *,
+        station_codes: list[str] | None = None,
+        parameters: list[str] | None = None,
+    ) -> list[ReadingRecord]:
+        conditions, params = _filter_conditions(station_codes, parameters)
+        where = " AND ".join(["timestamp BETWEEN ? AND ?", *conditions])
+        sql = (
+            f"SELECT code, parameter, unit, timestamp, value FROM {VIEW_READINGS_FULL}"
+            f" WHERE {where} ORDER BY code, parameter, timestamp"
+        )
+        return self._read(sql, [_to_db_ts(start), _to_db_ts(end), *params])
+
+    def _read(self, sql: str, params: list[str]) -> list[ReadingRecord]:
+        """Run a readings_full query and map rows to ReadingRecords."""
+        rows = self._conn.execute(sql, params).fetchall()
+        return [
+            ReadingRecord(
+                station_code=code,
+                parameter=parameter,
+                unit=unit,
+                timestamp=_from_db_ts(timestamp),
+                value=value,
+            )
+            for code, parameter, unit, timestamp, value in rows
+        ]
 
     def close(self) -> None:
         self._conn.close()
