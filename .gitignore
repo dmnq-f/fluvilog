@@ -1,0 +1,20 @@
+# Python virtual environment
+.venv/
+
+# OS / IDEs
+.DS_Store
+.vscode/settings.json
+
+# Byte-compiled / caches
+__pycache__/
+*.py[cod]
+.*_cache/
+
+# Packaging
+*.egg-info/
+build/
+dist/
+
+# sqlite
+*.db
+*.db-*

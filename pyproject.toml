@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fluvilog"
+version = "0.1.0"
+description = "Near-real-time readings from Hamburg's water quality network (WGMN) via the public Wassergüte-Auskunft."
+requires-python = ">=3.12"
+dependencies = [
+    "requests>=2.31",
+    "pandas>=2.2",
+    "lxml>=5.0",
+]
+
+[project.scripts]
+fluvilog = "fluvilog.cli:main"
+
+[project.optional-dependencies]
+dev = [
+    "pyright",
+    "ruff",
+    "pre-commit",
+    "pandas-stubs",
+    "types-requests",
+    "lxml-stubs",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# Ruff is the single linter/formatter for this project (replaces flake8,
+# pycodestyle and isort). Run `ruff check` and `ruff format`.
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["fluvilog"]
+
+[tool.pyright]
+include = ["src"]
+pythonVersion = "3.12"
+typeCheckingMode = "strict"

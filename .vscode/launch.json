@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "fluvilog (serve)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fluvilog",
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "fluvilog (once)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fluvilog",
+      "args": ["once", "--station", "BL"],
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
+    }
+  ]
+}

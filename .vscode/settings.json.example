@@ -1,0 +1,13 @@
+{
+  // Copy this file to .vscode/settings.json.
+  // Lint + format with Ruff (requires the "charliermarsh.ruff" extension).
+  "flake8.enabled": false,
+  "[python]": {
+    "editor.defaultFormatter": "charliermarsh.ruff",
+    "editor.formatOnSave": true,
+    "editor.codeActionsOnSave": {
+      "source.fixAll.ruff": "explicit",
+      "source.organizeImports.ruff": "explicit"
+    }
+  }
+}
