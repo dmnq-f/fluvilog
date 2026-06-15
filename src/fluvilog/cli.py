@@ -22,7 +22,7 @@ import pandas as pd
 import requests
 
 from . import config
-from .constants import DEFAULT_PARAMETERS, STATIONS
+from .constants import DEFAULT_PARAMETERS, MAX_LIST_WINDOW_DAYS, STATIONS
 from .service import collect
 from .storage import IncompatibleSchemaError, SqliteStorage
 from .wgmn import fetch
@@ -93,7 +93,13 @@ def _run_collect(args: argparse.Namespace) -> int:
 
     try:
         with SqliteStorage(args.db) as store:
-            return collect(codes, DEFAULT_PARAMETERS, store, args.interval)
+            return collect(
+                codes,
+                DEFAULT_PARAMETERS,
+                store,
+                args.interval,
+                max_catchup_days=args.max_catchup,
+            )
     except IncompatibleSchemaError as e:
         print(str(e), file=sys.stderr)
         return 1
@@ -161,6 +167,17 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
         help=(
             f"Poll interval, e.g. 30s/10m/1h "
             f"(default: {env.interval}; env: FLUVILOG_INTERVAL)"
+        ),
+    )
+    p_collect.add_argument(
+        "--max-catchup",
+        type=int,
+        default=env.max_catchup,
+        metavar="DAYS",
+        help=(
+            f"On resume, back-fill at most this many days in one poll "
+            f"(capped at {MAX_LIST_WINDOW_DAYS}; longer gaps need `backfill`; "
+            f"default: {env.max_catchup}; env: FLUVILOG_MAX_CATCHUP)"
         ),
     )
 

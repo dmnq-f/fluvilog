@@ -17,6 +17,7 @@ from .constants import (
     DEFAULT_API_PORT,
     DEFAULT_DB_PATH,
     DEFAULT_INTERVAL,
+    DEFAULT_MAX_CATCHUP_DAYS,
     MIN_INTERVAL,
 )
 
@@ -53,6 +54,7 @@ class EnvConfig:
 
     db: str
     interval: str
+    max_catchup: str
     stations: list[str] | None
     api_host: str
     api_port: str
@@ -84,6 +86,7 @@ def load() -> EnvConfig:
     return EnvConfig(
         db=_get("DB") or DEFAULT_DB_PATH,
         interval=_get("INTERVAL") or str(DEFAULT_INTERVAL),
+        max_catchup=_get("MAX_CATCHUP") or str(DEFAULT_MAX_CATCHUP_DAYS),
         stations=_split(_get("STATION")) or None,
         api_host=_get("API_HOST") or DEFAULT_API_HOST,
         api_port=_get("API_PORT") or str(DEFAULT_API_PORT),

@@ -92,6 +92,20 @@ def test_window_inclusive_and_filters(seed: SimpleNamespace) -> None:
     assert empty == []
 
 
+def test_latest_timestamp_is_global_max_and_aware(seed: SimpleNamespace) -> None:
+    store = SqliteStorage.open_readonly(seed.path)
+    try:
+        overall = store.latest_timestamp()
+        only_sh = store.latest_timestamp(station_codes=["SH"])
+        missing = store.latest_timestamp(station_codes=["BU"])
+    finally:
+        store.close()
+    # Greatest stored timestamp wins even though that row's value is None.
+    assert overall == (seed.base + 2 * TEN).replace(tzinfo=BERLIN)
+    assert only_sh == seed.base.replace(tzinfo=BERLIN)  # SH has only the base row
+    assert missing is None  # no rows match -> None, never raises
+
+
 def test_open_readonly_rejects_writes(seed: SimpleNamespace) -> None:
     store = SqliteStorage.open_readonly(seed.path)
     try:

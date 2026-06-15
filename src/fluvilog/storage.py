@@ -151,6 +151,20 @@ class Storage(abc.ABC):
         """
 
     @abc.abstractmethod
+    def latest_timestamp(
+        self,
+        *,
+        station_codes: list[str] | None = None,
+        parameters: list[str] | None = None,
+    ) -> dt.datetime | None:
+        """Greatest stored reading timestamp, or None when no rows match.
+
+        Filtering matches latest_readings. The returned timestamp is tz-aware
+        Europe/Berlin. Used as the resume watermark for the collect loop: the
+        stored data is the watermark, so no separate "last fetch" state is kept.
+        """
+
+    @abc.abstractmethod
     def readings_in_window(
         self,
         start: dt.datetime,
@@ -324,6 +338,18 @@ class SqliteStorage(Storage):
             ") WHERE rn = 1"
         )
         return self._read(sql, params)
+
+    def latest_timestamp(
+        self,
+        *,
+        station_codes: list[str] | None = None,
+        parameters: list[str] | None = None,
+    ) -> dt.datetime | None:
+        conditions, params = _filter_conditions(station_codes, parameters)
+        where = f" WHERE {' AND '.join(conditions)}" if conditions else ""
+        sql = f"SELECT MAX(timestamp) FROM {VIEW_READINGS_FULL}{where}"
+        row = self._conn.execute(sql, params).fetchone()
+        return _from_db_ts(row[0]) if row and row[0] is not None else None
 
     def readings_in_window(
         self,

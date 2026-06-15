@@ -72,6 +72,12 @@ DEFAULT_INTERVAL = 600  # seconds between polls (source updates ~every 10 min)
 MIN_INTERVAL = 30  # floor enforced by --interval parsing
 DEFAULT_DB_PATH = "fluvilog.db"  # SQLite file, relative to cwd
 
+# Window limits. The source's export only returns 10-min values for windows up
+# to 10 days; a longer window degrades to daily means
+MAX_LIST_WINDOW_DAYS = 10  # hard ceiling for one query's date span
+BACKFILL_CHUNK_DAYS = 7  # span per backfill request (conservative, <= ceiling)
+DEFAULT_MAX_CATCHUP_DAYS = 7  # collect's per-poll auto-resume cap on resume
+
 # Timezone of stored reading timestamps; also the offset all read APIs emit.
 BERLIN_TZ = "Europe/Berlin"
 

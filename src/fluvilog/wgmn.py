@@ -167,18 +167,26 @@ def _parse(csv_text: str, *, latest_only: bool) -> pd.DataFrame:
 
 
 def _fetch(
-    station_codes: list[str], parameter_idx: list[int], *, latest_only: bool
+    station_codes: list[str],
+    parameter_idx: list[int],
+    *,
+    latest_only: bool,
+    start: dt.date | None = None,
+    end: dt.date | None = None,
 ) -> pd.DataFrame:
     """Query the selected stations/parameters and return a long-format frame.
 
-    Splits the selection into blocks of <=5 (service limit) and queries
-    yesterday→today to be sure of recent rows. With latest_only the result has
-    one row per (code, parameter); otherwise one row per (code, parameter,
-    timestamp).
+    Splits the selection into blocks of <=5 (service limit). The date window is
+    [start, end]; it defaults to yesterday→today. start/end must satisfy
+    start < end and span at most MAX_LIST_WINDOW_DAYS (a wider window degrades
+    to daily means upstream) — neither is enforced here; callers pass valid
+    bounds. With latest_only the result has one row per (code, parameter);
+    otherwise one row per (code, parameter, timestamp).
     """
-    today = dt.date.today()
-    date_from = (today - dt.timedelta(days=1)).strftime("%d.%m.%Y")
-    date_to = today.strftime("%d.%m.%Y")
+    end = end or dt.date.today()
+    start = start or (end - dt.timedelta(days=1))
+    date_from = start.strftime("%d.%m.%Y")
+    date_to = end.strftime("%d.%m.%Y")
 
     session = requests.Session()
     session.headers["User-Agent"] = USER_AGENT
@@ -229,9 +237,16 @@ def fetch(station_codes: list[str], parameter_idx: list[int]) -> pd.DataFrame:
     return _fetch(station_codes, parameter_idx, latest_only=True)
 
 
-def fetch_history(station_codes: list[str], parameter_idx: list[int]) -> pd.DataFrame:
-    """Fetch every 10-min reading per station/parameter in the queried window.
+def fetch_history(
+    station_codes: list[str],
+    parameter_idx: list[int],
+    *,
+    start: dt.date | None = None,
+    end: dt.date | None = None,
+) -> pd.DataFrame:
+    """Fetch every 10-min reading per station/parameter in the [start, end] window.
 
+    Window defaults to yesterday→today; see _fetch for the bound constraints.
     Same columns as fetch, but one row per (code, parameter, timestamp).
     """
-    return _fetch(station_codes, parameter_idx, latest_only=False)
+    return _fetch(station_codes, parameter_idx, latest_only=False, start=start, end=end)

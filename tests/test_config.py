@@ -9,11 +9,13 @@ from fluvilog.constants import (
     DEFAULT_API_PORT,
     DEFAULT_DB_PATH,
     DEFAULT_INTERVAL,
+    DEFAULT_MAX_CATCHUP_DAYS,
 )
 
 _VARS = [
     "FLUVILOG_DB",
     "FLUVILOG_INTERVAL",
+    "FLUVILOG_MAX_CATCHUP",
     "FLUVILOG_STATION",
     "FLUVILOG_API_HOST",
     "FLUVILOG_API_PORT",
@@ -32,6 +34,7 @@ def test_defaults_when_unset() -> None:
     env = config.load()
     assert env.db == DEFAULT_DB_PATH
     assert env.interval == str(DEFAULT_INTERVAL)
+    assert env.max_catchup == str(DEFAULT_MAX_CATCHUP_DAYS)
     assert env.stations is None
     assert env.api_host == DEFAULT_API_HOST
     assert env.api_port == str(DEFAULT_API_PORT)
@@ -80,6 +83,13 @@ def test_port_string_default_coerced_to_int() -> None:
     args = build_parser(config.load()).parse_args(["serve-api"])
     assert args.port == DEFAULT_API_PORT
     assert isinstance(args.port, int)
+
+
+def test_max_catchup_env_and_int_coercion(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FLUVILOG_MAX_CATCHUP", "3")
+    args = build_parser(config.load()).parse_args(["collect"])
+    assert args.max_catchup == 3
+    assert isinstance(args.max_catchup, int)
 
 
 def test_cors_origin_default_is_none_so_main_can_use_env(

@@ -45,10 +45,20 @@ overrides the environment, which overrides the built-in default.
 | ---------------------- | --------------- | --------------------------------------------- |
 | `FLUVILOG_DB`          | `--db`          | `fluvilog.db`                                 |
 | `FLUVILOG_INTERVAL`    | `--interval`    | `600` (seconds; accepts `s`/`m`/`h` suffix)   |
+| `FLUVILOG_MAX_CATCHUP` | `--max-catchup` | `7` (days back-filled per poll on resume)     |
 | `FLUVILOG_STATION`     | `--station`     | all stations (comma-separated codes or names) |
 | `FLUVILOG_API_HOST`    | `--host`        | `127.0.0.1`                                   |
 | `FLUVILOG_API_PORT`    | `--port`        | `8000`                                        |
 | `FLUVILOG_CORS_ORIGIN` | `--cors-origin` | none (comma-separated origins)                |
+
+### Gaps after downtime
+
+`collect` resumes from the latest stored reading, so an outage (crash, restart,
+deploy) shorter than `--max-catchup` days back-fills automatically on the next
+poll — writes are idempotent, so the re-fetched overlap is harmless. A single
+query can only cover ~10 days at full 10-minute resolution, which is why the
+per-poll catch-up is capped; longer gaps are logged and filled with a dedicated
+backfill (see `fluvilog --help`).
 
 ## HTTP API (optional)
 
