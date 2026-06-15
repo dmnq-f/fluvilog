@@ -1,7 +1,7 @@
 # fluvilog
 
-Near-real-time readings from Hamburg's water-quality network (WGMN), via the
-public [Wassergüte-Auskunft](https://serviceportal.hamburg.de) service.
+Near-real-time readings from Hamburg's water-quality network ([WGMN](https://www.hamburg.de/politik-und-verwaltung/behoerden/bukea/hu/umweltuntersuchungen/wasseruntersuchungen/wasserguetemessnetz)), via the
+public [Service Portal](https://serviceportal.hamburg.de/HamburgGateway/Service/Entry/WGMN) service.
 
 By default it runs as a continuous service that polls and stores readings into
 SQLite. A one-shot mode prints the latest values as a table instead, and an
