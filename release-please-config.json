@@ -4,7 +4,14 @@
   "bump-minor-pre-major": true,
   "packages": {
     ".": {
-      "release-type": "python"
+      "release-type": "python",
+      "extra-files": [
+        {
+          "path": "uv.lock",
+          "type": "toml",
+          "jsonpath": "$.package[?(@.name.value=='fluvilog')].version"
+        }
+      ]
     }
   }
 }
