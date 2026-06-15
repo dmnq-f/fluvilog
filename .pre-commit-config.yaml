@@ -23,16 +23,6 @@ repos:
     hooks:
       - id: pyright
         files: ^src/
-        additional_dependencies:
-          - pandas
-          - pandas-stubs
-          - lxml
-          - lxml-stubs
-          - requests
-          - types-requests
-          - fastapi
-          - uvicorn
-          - pydantic
 
   - repo: https://github.com/compilerla/conventional-pre-commit
     rev: v4.4.0
