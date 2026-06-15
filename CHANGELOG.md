@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.2.0](https://github.com/dmnq-f/fluvilog/compare/v0.1.1...v0.2.0) (2026-06-15)
+
+
+### Features
+
+* add FLUVILOG_* environment configuration layer ([8ed4bff](https://github.com/dmnq-f/fluvilog/commit/8ed4bfff46d16371434a6c1936aa574f1adfd1cf))
+
+
+### Documentation
+
+* add docker compose stack example ([8fd58c8](https://github.com/dmnq-f/fluvilog/commit/8fd58c8a209052dcd8bd96c05b6faed05fbf4fe6))
+
 ## [0.1.1](https://github.com/dmnq-f/fluvilog/compare/v0.1.0...v0.1.1) (2026-06-15)
 
 
