@@ -2,6 +2,8 @@
 
 import datetime as dt
 import sys
+from collections.abc import Iterable
+from itertools import batched
 from urllib.parse import urljoin
 
 import pandas as pd
@@ -18,11 +20,6 @@ from .constants import (
     TIMEOUT,
     USER_AGENT,
 )
-
-
-def _chunks(seq: list[int], size: int) -> list[list[int]]:
-    """Split a list into blocks of at most `size` elements."""
-    return [seq[i : i + size] for i in range(0, len(seq), size)]
 
 
 def _ffill(cells: list[str]) -> list[str]:
@@ -74,8 +71,8 @@ def _station_index_map(session: requests.Session) -> dict[str, int]:
 
 def _query(
     session: requests.Session,
-    station_idx: list[int],
-    parameter_idx: list[int],
+    station_idx: Iterable[int],
+    parameter_idx: Iterable[int],
     date_from: str,
     date_to: str,
 ) -> str:
@@ -191,8 +188,8 @@ def _fetch(
 
     blocks = [
         (sb, pb)
-        for sb in _chunks(station_idx, MAX_STATIONS)
-        for pb in _chunks(parameter_idx, MAX_PARAMETERS)
+        for sb in batched(station_idx, MAX_STATIONS, strict=False)
+        for pb in batched(parameter_idx, MAX_PARAMETERS, strict=False)
     ]
     frames: list[pd.DataFrame] = []
     for n, (station_block, parameter_block) in enumerate(blocks, 1):
