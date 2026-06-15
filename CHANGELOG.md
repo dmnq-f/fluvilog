@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.1](https://github.com/dmnq-f/fluvilog/compare/v0.1.0...v0.1.1) (2026-06-15)
+
+
+### Bug Fixes
+
+* add missing metadata for pypi package ([5837e98](https://github.com/dmnq-f/fluvilog/commit/5837e98589c8365ff1799dbcdef77e0420fc10a4))
+
 ## 0.1.0 (2026-06-15)
 
 
