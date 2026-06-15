@@ -9,28 +9,8 @@ import time
 
 import requests
 
-from .constants import MIN_INTERVAL
 from .storage import Storage
 from .wgmn import fetch_history
-
-_UNITS = {"s": 1, "m": 60, "h": 3600}
-
-
-def parse_interval(text: str) -> float:
-    """Parse '600', '30s', '10m', or '1h' to seconds.
-
-    A bare number is seconds; a trailing s/m/h scales accordingly. The result
-    must be at least MIN_INTERVAL. Raises ValueError on malformed or too-small
-    input.
-    """
-    text = text.strip().lower()
-    if text and text[-1] in _UNITS:
-        seconds = float(text[:-1]) * _UNITS[text[-1]]
-    else:
-        seconds = float(text)
-    if seconds < MIN_INTERVAL:
-        raise ValueError(f"interval must be >= {MIN_INTERVAL}s")
-    return seconds
 
 
 def collect(

@@ -3,25 +3,31 @@
 # collect is the single writer — it owns the schema and WAL. serve-api opens the
 # database read-only per request and runs concurrently; under WAL a reader never
 # blocks the writer. Both point at the same /data/fluvilog.db on a named volume.
+#
+# Configuration goes through FLUVILOG_* environment variables (an equivalent
+# command-line flag would override them). The image already defaults
+# FLUVILOG_DB to /data/fluvilog.db; it is repeated here to make the setup
+# self-documenting.
 
 services:
   collect:
     image: ghcr.io/dmnq-f/fluvilog:latest
-    command: ["collect", "--db", "/data/fluvilog.db"]
+    command: ["collect"]
+    environment:
+      FLUVILOG_DB: /data/fluvilog.db
+      # FLUVILOG_STATION: "BL,SH"   # restrict to specific stations (default: all)
+      # FLUVILOG_INTERVAL: 10m      # poll interval (default: 600s)
     volumes:
       - fluvilog-data:/data
     restart: unless-stopped
 
   serve-api:
     image: ghcr.io/dmnq-f/fluvilog:latest
-    command:
-      - serve-api
-      - --db
-      - /data/fluvilog.db
-      - --host
-      - 0.0.0.0
-      - --cors-origin
-      - http://localhost:5173
+    command: ["serve-api"]
+    environment:
+      FLUVILOG_DB: /data/fluvilog.db
+      FLUVILOG_API_HOST: 0.0.0.0
+      FLUVILOG_CORS_ORIGIN: http://localhost:5173
     ports:
       - "8000:8000"
     # Mounted read-write on purpose: the API connects with SQLite mode=ro, but a

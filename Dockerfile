@@ -41,10 +41,13 @@ RUN useradd --system --create-home --uid 10001 fluvilog \
 
 COPY --from=builder --chown=fluvilog:fluvilog /app /app
 
-ENV PATH="/app/.venv/bin:$PATH"
+# FLUVILOG_DB points the default database at the /data volume; an explicit
+# --db flag still overrides it.
+ENV PATH="/app/.venv/bin:$PATH" \
+    FLUVILOG_DB=/data/fluvilog.db
 WORKDIR /app
 USER fluvilog
 VOLUME ["/data"]
 
 ENTRYPOINT ["fluvilog"]
-CMD ["collect", "--db", "/data/fluvilog.db"]
+CMD ["collect"]
