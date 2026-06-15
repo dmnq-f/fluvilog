@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.0](https://github.com/dmnq-f/fluvilog/compare/v0.2.0...v0.3.0) (2026-06-15)
+
+
+### Features
+
+* add backfill subcommand for historical date ranges ([552c303](https://github.com/dmnq-f/fluvilog/commit/552c303371d0a667f5c5f3f130baeec407e18884))
+* back-fill collect gaps by resuming from the stored watermark ([19089c4](https://github.com/dmnq-f/fluvilog/commit/19089c4039103b8c5f337587e2ac9b0fdc0e6432))
+* warn when a backfill range predates a station's start ([054baaf](https://github.com/dmnq-f/fluvilog/commit/054baaf94b47ff786db7821e437545bb09cfb93f))
+
 ## [0.2.0](https://github.com/dmnq-f/fluvilog/compare/v0.1.1...v0.2.0) (2026-06-15)
 
 
