@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "fluvilog"
 version = "0.1.0"
 description = "Near-real-time readings from Hamburg's water quality network (WGMN) via the public Wassergüte-Auskunft."
-requires-python = ">=3.12"
+requires-python = ">=3.13"
 dependencies = [
     "requests>=2.31",
     "pandas>=2.2",
@@ -44,7 +44,7 @@ where = ["src"]
 # pycodestyle and isort). Run `ruff check` and `ruff format`.
 [tool.ruff]
 line-length = 88
-target-version = "py312"
+target-version = "py313"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "UP", "B"]
@@ -54,7 +54,7 @@ known-first-party = ["fluvilog"]
 
 [tool.pyright]
 include = ["src"]
-pythonVersion = "3.12"
+pythonVersion = "3.13"
 typeCheckingMode = "strict"
 
 [tool.pytest.ini_options]
