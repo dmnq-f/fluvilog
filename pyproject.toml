@@ -28,8 +28,6 @@ dependencies = [
     "lxml>=5.0",
 ]
 
-# Optional HTTP API tier. pydantic is declared explicitly — api.schemas imports
-# it directly — even though fastapi would pull it in transitively.
 [project.optional-dependencies]
 api = [
     "fastapi>=0.110",
@@ -60,8 +58,6 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
-# Ruff is the single linter/formatter for this project (replaces flake8,
-# pycodestyle and isort). Run `ruff check` and `ruff format`.
 [tool.ruff]
 line-length = 88
 target-version = "py313"
