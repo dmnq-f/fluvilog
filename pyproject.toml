@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "fluvilog"
-version = "0.1.0"
+version = "0.1.1"
 description = "Near-real-time readings from Hamburg's water quality network (WGMN) via the public Wassergüte-Auskunft."
 readme = "README.md"
 requires-python = ">=3.13"
