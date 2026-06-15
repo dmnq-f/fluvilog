@@ -11,11 +11,12 @@ permissions:
 
 jobs:
   test:
-    name: Test Suite
+    name: Lint & Test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       - uses: astral-sh/setup-uv@v8.2.0
         with:
           enable-cache: true
+      - run: uv run --frozen --extra api pyright
       - run: uv run --frozen --extra api pytest
