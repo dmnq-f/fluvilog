@@ -1,0 +1,50 @@
+# Run the collector and the HTTP read API together against one shared database.
+#
+# collect is the single writer — it owns the schema and WAL. serve-api opens the
+# database read-only per request and runs concurrently; under WAL a reader never
+# blocks the writer. Both point at the same /data/fluvilog.db on a named volume.
+
+services:
+  collect:
+    image: ghcr.io/dmnq-f/fluvilog:latest
+    command: ["collect", "--db", "/data/fluvilog.db"]
+    volumes:
+      - fluvilog-data:/data
+    restart: unless-stopped
+
+  serve-api:
+    image: ghcr.io/dmnq-f/fluvilog:latest
+    command:
+      - serve-api
+      - --db
+      - /data/fluvilog.db
+      - --host
+      - 0.0.0.0
+      - --cors-origin
+      - http://localhost:5173
+    ports:
+      - "8000:8000"
+    # Mounted read-write on purpose: the API connects with SQLite mode=ro, but a
+    # WAL reader still has to open the -wal/-shm sidecars, which a filesystem-level :ro
+    # mount would block.
+    volumes:
+      - fluvilog-data:/data
+    # Start the writer first; the API tolerates a missing DB at boot (only
+    # DB-backed requests fail until collect has written the first readings).
+    depends_on:
+      - collect
+    restart: unless-stopped
+    healthcheck:
+      # /api/stations served from the static catalogue, healthy even before readings exist.
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/stations")
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+volumes:
+  fluvilog-data:

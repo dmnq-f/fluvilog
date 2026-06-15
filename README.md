@@ -73,3 +73,10 @@ Or build locally:
 docker build -t fluvilog .
 docker run -v "$PWD/data:/data" fluvilog
 ```
+
+To run `collect` and the HTTP API together against a shared database, see
+[`examples/compose.yaml`](examples/compose.yaml):
+
+```sh
+docker compose -f examples/compose.yaml up -d   # collect (writer) + serve-api on http://localhost:8000
+```
