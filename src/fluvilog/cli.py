@@ -34,7 +34,7 @@ def resolve_codes(selectors: list[str] | None) -> list[str]:
     """Translate --station arguments (code or name, case-insensitive) to codes."""
     if not selectors:
         return list(STATIONS)
-    by_name = {name.casefold(): code for code, (name, _) in STATIONS.items()}
+    by_name = {s.name.casefold(): s.code for s in STATIONS.values()}
     codes: list[str] = []
     for sel in selectors:
         if sel.upper() in STATIONS:
@@ -49,8 +49,8 @@ def resolve_codes(selectors: list[str] | None) -> list[str]:
 def _run_list() -> int:
     """Print the station catalogue and exit."""
     print("# Known WGMN stations:")
-    for code, (name, water_body) in STATIONS.items():
-        print(f"  {code}  {name} ({water_body})")
+    for s in STATIONS.values():
+        print(f"  {s.code}  {s.name} ({s.water_body})")
     return 0
 
 

@@ -75,7 +75,18 @@ def create_app(*, db_path: str, allowed_origins: list[str]) -> FastAPI:
 
     @app.get("/api/stations")
     def get_stations() -> list[StationOut]:
-        return [StationOut(**asdict(s)) for s in catalogue.stations()]
+        # Explicit projection: StationOut is a deliberate subset of Station and
+        # does not expose recording_since.
+        return [
+            StationOut(
+                code=s.code,
+                name=s.name,
+                water_body=s.water_body,
+                latitude=s.latitude,
+                longitude=s.longitude,
+            )
+            for s in catalogue.stations()
+        ]
 
     @app.get("/api/readings/latest")
     def get_latest(

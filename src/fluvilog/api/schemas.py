@@ -1,7 +1,7 @@
 """Public, validated HTTP response models.
 
-Pydantic shapes for the wire contract, kept separate from records.py so the HTTP
-surface can evolve independently of the internal storage records.
+Pydantic shapes for the wire contract, kept separate from models.py so the HTTP
+surface can evolve independently of the internal domain models.
 """
 
 from datetime import datetime

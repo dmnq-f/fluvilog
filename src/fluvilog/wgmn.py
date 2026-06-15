@@ -52,7 +52,7 @@ def _station_index_map(session: requests.Session) -> dict[str, int]:
     """
     resp = session.get(START, timeout=TIMEOUT)
     doc = fromstring(resp.content)
-    code_of = {f"{body} {name}": code for code, (name, body) in STATIONS.items()}
+    code_of = {f"{s.water_body} {s.name}": s.code for s in STATIONS.values()}
 
     found: dict[str, int] = {}
     for label in doc.findall(".//label"):
@@ -219,8 +219,8 @@ def _fetch(
     keys = ["code", "parameter"] if latest_only else ["code", "parameter", "timestamp"]
     df = pd.concat(frames, ignore_index=True)
     df = df.sort_values("timestamp").drop_duplicates(keys, keep="last")
-    names = {code: name for code, (name, _) in STATIONS.items()}
-    bodies = {code: body for code, (_, body) in STATIONS.items()}
+    names = {s.code: s.name for s in STATIONS.values()}
+    bodies = {s.code: s.water_body for s in STATIONS.values()}
     df["station"] = df["code"].map(names)
     df["water_body"] = df["code"].map(bodies)
     df = df[

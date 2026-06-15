@@ -23,7 +23,7 @@ from .constants import (
     TABLE_STATIONS,
     VIEW_READINGS_FULL,
 )
-from .records import ReadingRecord
+from .models import ReadingRecord
 
 
 class IncompatibleSchemaError(Exception):
@@ -242,7 +242,7 @@ class SqliteStorage(Storage):
         self._conn.executescript(_SCHEMA)
         self._conn.executemany(
             _SEED_STATIONS,
-            [(code, name, body) for code, (name, body) in STATIONS.items()],
+            [(s.code, s.name, s.water_body) for s in STATIONS.values()],
         )
         self._conn.executemany(_SEED_PARAMETERS, list(enumerate(PARAMETERS)))
         self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
