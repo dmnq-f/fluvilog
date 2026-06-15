@@ -6,7 +6,22 @@ build-backend = "setuptools.build_meta"
 name = "fluvilog"
 version = "0.1.0"
 description = "Near-real-time readings from Hamburg's water quality network (WGMN) via the public Wassergüte-Auskunft."
+readme = "README.md"
 requires-python = ">=3.13"
+authors = [{ name = "Dominique Fuchs", email = "df@0x9d.net" }]
+license = "AGPL-3.0-only"
+license-files = ["LICENSE"]
+keywords = ["hamburg", "water-quality", "wgmn", "environmental-data", "hydrology"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Education",
+    "Intended Audience :: End Users/Desktop",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Scientific/Engineering :: Hydrology",
+]
 dependencies = [
     "requests>=2.31",
     "pandas>=2.2",
@@ -24,6 +39,11 @@ api = [
 
 [project.scripts]
 fluvilog = "fluvilog.cli:main"
+
+[project.urls]
+Repository = "https://github.com/dmnq-f/fluvilog"
+Issues = "https://github.com/dmnq-f/fluvilog/issues"
+Changelog = "https://github.com/dmnq-f/fluvilog/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
