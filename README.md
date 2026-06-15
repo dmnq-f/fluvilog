@@ -1,5 +1,8 @@
 # fluvilog
 
+[![CI](https://github.com/dmnq-f/fluvilog/actions/workflows/ci.yml/badge.svg)](https://github.com/dmnq-f/fluvilog/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/fluvilog)](https://pypi.org/project/fluvilog/)
+
 Near-real-time readings from Hamburg's water-quality network ([WGMN](https://www.hamburg.de/politik-und-verwaltung/behoerden/bukea/hu/umweltuntersuchungen/wasseruntersuchungen/wasserguetemessnetz)), via the
 public [Service Portal](https://serviceportal.hamburg.de/HamburgGateway/Service/Entry/WGMN) service.
 
