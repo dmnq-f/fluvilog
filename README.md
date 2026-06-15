@@ -30,6 +30,7 @@ Once installed:
 uv run fluvilog list    # list stations (no egress here)
 uv run fluvilog once    # one-shot fetch and print
 uv run fluvilog         # Continuously fetch and store (default metrics, all stations)
+uv run fluvilog backfill --from 2025-01-01   # fetch and store a historical range
 ```
 
 Bare `fluvilog` (no subcommand) runs `collect`. A single fetch cycle takes ~30–50 s — this is due to the way the data is provided, not an issue with your network or the code.
@@ -57,8 +58,18 @@ overrides the environment, which overrides the built-in default.
 deploy) shorter than `--max-catchup` days back-fills automatically on the next
 poll — writes are idempotent, so the re-fetched overlap is harmless. A single
 query can only cover ~10 days at full 10-minute resolution, which is why the
-per-poll catch-up is capped; longer gaps are logged and filled with a dedicated
-backfill (see `fluvilog --help`).
+per-poll catch-up is capped.
+
+For longer gaps (or to seed history), run a one-shot backfill over an explicit
+range — it splits the range into source-sized windows and stores each
+idempotently, so it is safe to re-run and resumes cleanly after an interruption:
+
+```sh
+uv run fluvilog backfill --from 2025-01-01 --to 2025-03-31 --db water.db
+```
+
+`--to` defaults to today. Data is available back to each station's start (the
+Elbe stations to 1988).
 
 ## HTTP API (optional)
 

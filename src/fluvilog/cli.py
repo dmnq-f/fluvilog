@@ -9,11 +9,13 @@ Usage:
     fluvilog collect --db water.db --interval 10m
     fluvilog once                     # one-shot fetch and print
     fluvilog once --csv values.csv    # ... and write to CSV
+    fluvilog backfill --from 2025-01-01  # fetch and store a historical range
     fluvilog list                     # list known stations
     fluvilog serve-api                # serve the HTTP read API (needs [api] extra)
 """
 
 import argparse
+import datetime as dt
 import logging
 import sqlite3
 import sys
@@ -23,11 +25,21 @@ import requests
 
 from . import config
 from .constants import DEFAULT_PARAMETERS, MAX_LIST_WINDOW_DAYS, STATIONS
-from .service import collect
+from .service import backfill, collect
 from .storage import IncompatibleSchemaError, SqliteStorage
 from .wgmn import fetch
 
-_COMMANDS = {"collect", "once", "list", "serve-api"}
+_COMMANDS = {"collect", "once", "list", "serve-api", "backfill"}
+
+
+def _iso_date(text: str) -> dt.date:
+    """Parse an ISO 8601 date (YYYY-MM-DD); raises for argparse on bad input."""
+    try:
+        return dt.date.fromisoformat(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(
+            f"not an ISO date (YYYY-MM-DD): {text!r}"
+        ) from None
 
 
 def resolve_codes(selectors: list[str] | None) -> list[str]:
@@ -100,6 +112,28 @@ def _run_collect(args: argparse.Namespace) -> int:
                 args.interval,
                 max_catchup_days=args.max_catchup,
             )
+    except IncompatibleSchemaError as e:
+        print(str(e), file=sys.stderr)
+        return 1
+    except sqlite3.Error as e:
+        print(f"Database error: {e}", file=sys.stderr)
+        return 1
+
+
+def _run_backfill(args: argparse.Namespace) -> int:
+    """Fetch and store a historical [--from, --to] range, chunked and idempotent."""
+    codes = resolve_codes(args.station)
+    if not codes:
+        return 2
+
+    end = args.end or dt.date.today()
+    if args.start > end:
+        print("--from must not be after --to", file=sys.stderr)
+        return 2
+
+    try:
+        with SqliteStorage(args.db) as store:
+            return backfill(codes, DEFAULT_PARAMETERS, store, args.start, end)
     except IncompatibleSchemaError as e:
         print(str(e), file=sys.stderr)
         return 1
@@ -181,6 +215,38 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
         ),
     )
 
+    p_backfill = sub.add_parser(
+        "backfill", help="Fetch and store a historical date range (one-shot)"
+    )
+    p_backfill.add_argument(
+        "--from",
+        dest="start",
+        required=True,
+        type=_iso_date,
+        metavar="DATE",
+        help="Start date, inclusive (YYYY-MM-DD)",
+    )
+    p_backfill.add_argument(
+        "--to",
+        dest="end",
+        type=_iso_date,
+        metavar="DATE",
+        help="End date, inclusive (YYYY-MM-DD; default: today)",
+    )
+    p_backfill.add_argument(
+        "--station",
+        nargs="+",
+        metavar="CODE/NAME",
+        default=env.stations,
+        help="Only these stations (env: FLUVILOG_STATION)",
+    )
+    p_backfill.add_argument(
+        "--db",
+        metavar="PATH",
+        default=env.db,
+        help=f"SQLite database path (default: {env.db}; env: FLUVILOG_DB)",
+    )
+
     p_once = sub.add_parser("once", help="One-shot fetch and print")
     p_once.add_argument(
         "--station",
@@ -248,6 +314,8 @@ def main(argv: list[str] | None = None) -> int:
         return _run_list()
     if args.command == "once":
         return _run_once(args)
+    if args.command == "backfill":
+        return _run_backfill(args)
     if args.command == "serve-api":
         if args.cors_origin is None:
             args.cors_origin = env.cors_origins

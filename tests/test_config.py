@@ -1,5 +1,7 @@
 """Environment configuration: resolution and command-line override precedence."""
 
+import datetime as dt
+
 import pytest
 
 from fluvilog import config
@@ -90,6 +92,28 @@ def test_max_catchup_env_and_int_coercion(monkeypatch: pytest.MonkeyPatch) -> No
     args = build_parser(config.load()).parse_args(["collect"])
     assert args.max_catchup == 3
     assert isinstance(args.max_catchup, int)
+
+
+def test_backfill_parses_iso_dates() -> None:
+    parser = build_parser(config.load())
+    args = parser.parse_args(["backfill", "--from", "2025-06-01", "--to", "2025-06-10"])
+    assert args.start == dt.date(2025, 6, 1)
+    assert args.end == dt.date(2025, 6, 10)
+
+
+def test_backfill_to_defaults_to_none_for_run_layer() -> None:
+    args = build_parser(config.load()).parse_args(["backfill", "--from", "2025-06-01"])
+    assert args.end is None  # _run_backfill substitutes today
+
+
+def test_backfill_requires_from() -> None:
+    with pytest.raises(SystemExit):
+        build_parser(config.load()).parse_args(["backfill"])
+
+
+def test_backfill_rejects_non_iso_from() -> None:
+    with pytest.raises(SystemExit):
+        build_parser(config.load()).parse_args(["backfill", "--from", "01.06.2025"])
 
 
 def test_cors_origin_default_is_none_so_main_can_use_env(
