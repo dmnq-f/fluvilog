@@ -10,6 +10,7 @@ from collections.abc import Iterator
 
 import requests
 
+from . import catalogue
 from .constants import (
     BACKFILL_CHUNK_DAYS,
     DEFAULT_MAX_CATCHUP_DAYS,
@@ -153,6 +154,14 @@ def backfill(
 
     if start == end:
         end = end + dt.timedelta(days=1)
+    premature = catalogue.started_after(station_codes, start)
+    if premature:
+        log.warning(
+            "range starts %s, before these stations began recording (%s); "
+            "their early windows return no data",
+            start,
+            ", ".join(f"{s.code} {s.recording_since}" for s in premature),
+        )
     windows = list(_date_chunks(start, end, min(chunk_days, MAX_LIST_WINDOW_DAYS - 1)))
     log.info(
         "backfilling %d station(s) × %d parameter(s), %s→%s in %d window(s)",
@@ -166,19 +175,29 @@ def backfill(
     for n, (win_start, win_end) in enumerate(windows, 1):
         if stop.is_set():
             break
-        fetched_at = dt.datetime.now(dt.UTC)
-        try:
-            df = fetch_history(
-                station_codes, parameter_idx, start=win_start, end=win_end
-            )
-            inserted = storage.write(df, fetched_at)
-            total += inserted
+        # Omit stations not yet recording by this window — they have no data here.
+        active = catalogue.recording_by(station_codes, win_end)
+        if not active:
             log.info(
-                "window %d/%d %s→%s: inserted %d new row(s)",
+                "window %d/%d %s→%s: skipped, no selected station recording yet",
                 n,
                 len(windows),
                 win_start,
                 win_end,
+            )
+            continue
+        fetched_at = dt.datetime.now(dt.UTC)
+        try:
+            df = fetch_history(active, parameter_idx, start=win_start, end=win_end)
+            inserted = storage.write(df, fetched_at)
+            total += inserted
+            log.info(
+                "window %d/%d %s→%s: %d station(s), inserted %d new row(s)",
+                n,
+                len(windows),
+                win_start,
+                win_end,
+                len(active),
                 inserted,
             )
         except requests.RequestException as e:

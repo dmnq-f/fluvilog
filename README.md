@@ -68,8 +68,9 @@ idempotently, so it is safe to re-run and resumes cleanly after an interruption:
 uv run fluvilog backfill --from 2025-01-01 --to 2025-03-31 --db water.db
 ```
 
-`--to` defaults to today. Data is available back to each station's start (the
-Elbe stations to 1988).
+`--to` defaults to today. Data goes back to each station's start. For windows before a selected station began recording,
+backfill omits that station from the request (and warns), so it never polls for
+data that cannot exist yet.
 
 ## HTTP API (optional)
 
