@@ -61,7 +61,15 @@ source cadence.
 
 ## Docker
 
+Released images are published to GHCR:
+
+```sh
+docker run -v "$PWD/data:/data" ghcr.io/dmnq-f/fluvilog   # collect into /data/fluvilog.db
+```
+
+Or build locally:
+
 ```sh
 docker build -t fluvilog .
-docker run -v "$PWD/data:/data" fluvilog        # collect into /data/fluvilog.db
+docker run -v "$PWD/data:/data" fluvilog
 ```
