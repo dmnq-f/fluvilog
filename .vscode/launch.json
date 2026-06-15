@@ -19,6 +19,16 @@
       "python": "${workspaceFolder}/.venv/bin/python",
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal"
+    },
+    {
+      "name": "fluvilog (serve-api)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "fluvilog",
+      "args": ["serve-api", "--cors-origin", "http://localhost:5173"],
+      "python": "${workspaceFolder}/.venv/bin/python",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal"
     }
   ]
 }
