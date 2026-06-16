@@ -9,6 +9,7 @@ This is the seam where a future file-based configuration layer would slot in:
 read a file, let the environment override it, then the command line over that.
 """
 
+import logging
 import os
 from dataclasses import dataclass
 
@@ -17,6 +18,7 @@ from .constants import (
     DEFAULT_API_PORT,
     DEFAULT_DB_PATH,
     DEFAULT_INTERVAL,
+    DEFAULT_LOG_LEVEL,
     DEFAULT_MAX_CATCHUP_DAYS,
     MIN_INTERVAL,
 )
@@ -42,11 +44,23 @@ def parse_interval(text: str) -> float:
     return seconds
 
 
+def parse_log_level(text: str) -> int:
+    """Map a level name (case-insensitive) to its logging integer.
+
+    Accepts DEBUG/INFO/WARNING/ERROR/CRITICAL. Raises ValueError on an unknown
+    name.
+    """
+    level = logging.getLevelNamesMapping().get(text.strip().upper())
+    if level is None:
+        raise ValueError(f"unknown log level: {text!r}")
+    return level
+
+
 @dataclass(frozen=True, slots=True)
 class EnvConfig:
     """Configuration defaults resolved from the environment.
 
-    Numeric and duration fields (`interval`, `api_port`) are kept as strings so
+    Coerced fields (`interval`, `api_port`, `log_level`) are kept as strings so
     the owning argument's `type=` performs coercion and error reporting, exactly
     as for a value typed on the command line. List fields are split on commas;
     `stations` is None when unset, meaning "all stations".
@@ -59,6 +73,7 @@ class EnvConfig:
     api_host: str
     api_port: str
     cors_origins: list[str]
+    log_level: str
 
 
 def _get(name: str) -> str | None:
@@ -91,4 +106,5 @@ def load() -> EnvConfig:
         api_host=_get("API_HOST") or DEFAULT_API_HOST,
         api_port=_get("API_PORT") or str(DEFAULT_API_PORT),
         cors_origins=_split(_get("CORS_ORIGIN")),
+        log_level=_get("LOG_LEVEL") or DEFAULT_LOG_LEVEL,
     )

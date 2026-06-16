@@ -31,6 +31,8 @@ from .wgmn import fetch
 
 _COMMANDS = {"collect", "once", "list", "serve-api", "backfill"}
 
+log = logging.getLogger(__name__)
+
 
 def _iso_date(text: str) -> dt.date:
     """Parse an ISO 8601 date (YYYY-MM-DD); raises for argparse on bad input."""
@@ -54,7 +56,7 @@ def resolve_codes(selectors: list[str] | None) -> list[str]:
         elif sel.casefold() in by_name:
             codes.append(by_name[sel.casefold()])
         else:
-            print(f"  ! unknown station: {sel!r} (list shows all)", file=sys.stderr)
+            log.warning("unknown station: %r (list shows all)", sel)
     return codes
 
 
@@ -113,10 +115,10 @@ def _run_collect(args: argparse.Namespace) -> int:
                 max_catchup_days=args.max_catchup,
             )
     except IncompatibleSchemaError as e:
-        print(str(e), file=sys.stderr)
+        log.error("%s", e)
         return 1
     except sqlite3.Error as e:
-        print(f"Database error: {e}", file=sys.stderr)
+        log.error("database error: %s", e)
         return 1
 
 
@@ -135,10 +137,10 @@ def _run_backfill(args: argparse.Namespace) -> int:
         with SqliteStorage(args.db) as store:
             return backfill(codes, DEFAULT_PARAMETERS, store, args.start, end)
     except IncompatibleSchemaError as e:
-        print(str(e), file=sys.stderr)
+        log.error("%s", e)
         return 1
     except sqlite3.Error as e:
-        print(f"Database error: {e}", file=sys.stderr)
+        log.error("database error: %s", e)
         return 1
 
 
@@ -152,10 +154,9 @@ def _run_serve_api(args: argparse.Namespace) -> int:
 
         from .api import create_app
     except ImportError:
-        print(
+        log.error(
             "The HTTP API needs the optional dependencies. "
-            "Install them with: pip install 'fluvilog[api]'",
-            file=sys.stderr,
+            "Install them with: pip install 'fluvilog[api]'"
         )
         return 1
 
@@ -179,7 +180,25 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
     )
     sub = ap.add_subparsers(dest="command", required=True)
 
-    p_collect = sub.add_parser("collect", help="Continuously fetch and store (default)")
+    # Shared across every subcommand; `main` applies it once parsing resolves
+    # the level (built-in < env < flag) for all commands alike.
+    common = argparse.ArgumentParser(add_help=False)
+    common.add_argument(
+        "--log-level",
+        type=config.parse_log_level,
+        default=env.log_level,
+        metavar="LEVEL",
+        help=(
+            "Log verbosity: DEBUG/INFO/WARNING/ERROR/CRITICAL "
+            f"(default: {env.log_level}; env: FLUVILOG_LOG_LEVEL)"
+        ),
+    )
+
+    p_collect = sub.add_parser(
+        "collect",
+        parents=[common],
+        help="Continuously fetch and store (default)",
+    )
     p_collect.add_argument(
         "--station",
         nargs="+",
@@ -216,7 +235,9 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
     )
 
     p_backfill = sub.add_parser(
-        "backfill", help="Fetch and store a historical date range (one-shot)"
+        "backfill",
+        parents=[common],
+        help="Fetch and store a historical date range (one-shot)",
     )
     p_backfill.add_argument(
         "--from",
@@ -247,7 +268,7 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
         help=f"SQLite database path (default: {env.db}; env: FLUVILOG_DB)",
     )
 
-    p_once = sub.add_parser("once", help="One-shot fetch and print")
+    p_once = sub.add_parser("once", parents=[common], help="One-shot fetch and print")
     p_once.add_argument(
         "--station",
         nargs="+",
@@ -257,10 +278,12 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
     )
     p_once.add_argument("--csv", metavar="PATH", help="Write result to CSV")
 
-    sub.add_parser("list", help="List known stations and exit")
+    sub.add_parser("list", parents=[common], help="List known stations and exit")
 
     p_api = sub.add_parser(
-        "serve-api", help="Serve the HTTP read API (needs the [api] extra)"
+        "serve-api",
+        parents=[common],
+        help="Serve the HTTP read API (needs the [api] extra)",
     )
     p_api.add_argument(
         "--db",
@@ -297,18 +320,19 @@ def main(argv: list[str] | None = None) -> int:
     FLUVILOG_* environment variables set defaults; command-line flags override
     them. See `config` for the variable names.
     """
-    logging.basicConfig(
-        level=logging.INFO,
-        format="%(asctime)s %(levelname)s %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
-        stream=sys.stderr,
-    )
     argv = sys.argv[1:] if argv is None else list(argv)
     if not argv or (argv[0] not in _COMMANDS and argv[0] not in {"-h", "--help"}):
         argv = ["collect", *argv]
 
     env = config.load()
     args = build_parser(env).parse_args(argv)
+
+    logging.basicConfig(
+        level=args.log_level,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+        stream=sys.stderr,
+    )
 
     if args.command == "list":
         return _run_list()

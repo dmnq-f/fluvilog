@@ -6,6 +6,7 @@ backends can be added by implementing Storage without touching the collect loop.
 
 import abc
 import datetime as dt
+import logging
 import os
 import sqlite3
 from itertools import repeat
@@ -24,6 +25,8 @@ from .constants import (
     VIEW_READINGS_FULL,
 )
 from .models import ReadingRecord
+
+log = logging.getLogger(__name__)
 
 
 class IncompatibleSchemaError(Exception):
@@ -234,6 +237,7 @@ class SqliteStorage(Storage):
         return cls(path, read_only=True)
 
     def init_schema(self) -> None:
+        log.debug("initialising schema at %r (WAL, FK on)", self._path)
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA synchronous=NORMAL")
@@ -247,6 +251,9 @@ class SqliteStorage(Storage):
         self._conn.executemany(_SEED_PARAMETERS, list(enumerate(PARAMETERS)))
         self._conn.execute(f"PRAGMA user_version = {SCHEMA_VERSION}")
         self._conn.commit()
+        log.debug(
+            "seeded %d station(s), %d parameter(s)", len(STATIONS), len(PARAMETERS)
+        )
 
     def _check_version(self) -> None:
         """Validate the file's schema version. Raises IncompatibleSchemaError.

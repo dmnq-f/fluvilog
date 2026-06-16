@@ -51,6 +51,7 @@ overrides the environment, which overrides the built-in default.
 | `FLUVILOG_API_HOST`    | `--host`        | `127.0.0.1`                                   |
 | `FLUVILOG_API_PORT`    | `--port`        | `8000`                                        |
 | `FLUVILOG_CORS_ORIGIN` | `--cors-origin` | none (comma-separated origins)                |
+| `FLUVILOG_LOG_LEVEL`   | `--log-level`   | `INFO` (DEBUG/INFO/WARNING/ERROR/CRITICAL)    |
 
 ### Gaps after downtime
 

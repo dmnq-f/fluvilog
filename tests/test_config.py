@@ -1,6 +1,7 @@
 """Environment configuration: resolution and command-line override precedence."""
 
 import datetime as dt
+import logging
 
 import pytest
 
@@ -11,6 +12,7 @@ from fluvilog.constants import (
     DEFAULT_API_PORT,
     DEFAULT_DB_PATH,
     DEFAULT_INTERVAL,
+    DEFAULT_LOG_LEVEL,
     DEFAULT_MAX_CATCHUP_DAYS,
 )
 
@@ -22,6 +24,7 @@ _VARS = [
     "FLUVILOG_API_HOST",
     "FLUVILOG_API_PORT",
     "FLUVILOG_CORS_ORIGIN",
+    "FLUVILOG_LOG_LEVEL",
 ]
 
 
@@ -41,6 +44,7 @@ def test_defaults_when_unset() -> None:
     assert env.api_host == DEFAULT_API_HOST
     assert env.api_port == str(DEFAULT_API_PORT)
     assert env.cors_origins == []
+    assert env.log_level == DEFAULT_LOG_LEVEL
 
 
 def test_env_values_are_read(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -126,3 +130,34 @@ def test_cors_origin_default_is_none_so_main_can_use_env(
     # Explicit flags replace rather than extend the environment value.
     args = parser.parse_args(["serve-api", "--cors-origin", "http://cli.test"])
     assert args.cors_origin == ["http://cli.test"]
+
+
+def test_parse_log_level_is_case_insensitive() -> None:
+    assert config.parse_log_level("debug") == logging.DEBUG
+    assert config.parse_log_level("  Warning ") == logging.WARNING
+
+
+def test_parse_log_level_rejects_unknown() -> None:
+    with pytest.raises(ValueError):
+        config.parse_log_level("verbose")
+
+
+def test_log_level_env_is_read(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("FLUVILOG_LOG_LEVEL", "DEBUG")
+    assert config.load().log_level == "DEBUG"
+
+
+def test_log_level_default_coerced_to_int() -> None:
+    args = build_parser(config.load()).parse_args(["collect"])
+    assert args.log_level == logging.INFO  # DEFAULT_LOG_LEVEL string coerced by type=
+
+
+def test_log_level_flag_overrides_default() -> None:
+    args = build_parser(config.load()).parse_args(["collect", "--log-level", "debug"])
+    assert args.log_level == logging.DEBUG
+
+
+def test_log_level_shared_across_subcommands() -> None:
+    # The parent parser wires --log-level to every subcommand, not just collect.
+    args = build_parser(config.load()).parse_args(["list", "--log-level", "WARNING"])
+    assert args.log_level == logging.WARNING

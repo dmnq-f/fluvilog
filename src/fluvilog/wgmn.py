@@ -1,7 +1,7 @@
 """Query the HamburgService water quality endpoint and parse its CSV responses."""
 
 import datetime as dt
-import sys
+import logging
 from collections.abc import Iterable
 from itertools import batched
 from urllib.parse import urljoin
@@ -20,6 +20,8 @@ from .constants import (
     TIMEOUT,
     USER_AGENT,
 )
+
+log = logging.getLogger(__name__)
 
 
 def _ffill(cells: list[str]) -> list[str]:
@@ -65,7 +67,9 @@ def _station_index_map(session: requests.Session) -> dict[str, int]:
 
     missing = sorted(set(STATIONS) - set(found))
     if missing:
+        log.error("stations missing from form (renamed upstream?): %s", missing)
         raise RuntimeError(f"stations not found in form (renamed upstream?): {missing}")
+    log.debug("mapped %d station(s) to form indices", len(found))
     return found
 
 
@@ -105,6 +109,9 @@ def _query(
         if "hlDownload" in (a.get("id") or "") and (href := a.get("href"))
     ]
     if not hrefs:
+        log.warning(
+            "no download link in response (no data for %s..%s)", date_from, date_to
+        )
         return ""
     csv = session.get(urljoin(result_page.url, hrefs[0]), timeout=TIMEOUT)
     csv.encoding = ENCODING
@@ -122,6 +129,7 @@ def _parse(csv_text: str, *, latest_only: bool) -> pd.DataFrame:
     """
     rows = [line.split(";") for line in csv_text.splitlines() if line.strip()]
     if len(rows) < 7:
+        log.warning("CSV had %d row(s), too few to parse", len(rows))
         return pd.DataFrame()
 
     codes = _ffill(rows[0])  # row 0: "Station Kurzname"
@@ -163,6 +171,7 @@ def _parse(csv_text: str, *, latest_only: bool) -> pd.DataFrame:
     df["timestamp"] = pd.to_datetime(
         df["timestamp"], format="%d.%m.%Y %H:%M", errors="coerce"
     )
+    log.debug("parsed %d reading(s) from CSV", len(df))
     return df
 
 
@@ -199,13 +208,15 @@ def _fetch(
         for sb in batched(station_idx, MAX_STATIONS, strict=False)
         for pb in batched(parameter_idx, MAX_PARAMETERS, strict=False)
     ]
+    log.debug("fetching %s..%s in %d block(s)", date_from, date_to, len(blocks))
     frames: list[pd.DataFrame] = []
     for n, (station_block, parameter_block) in enumerate(blocks, 1):
-        print(
-            f"  … query {n}/{len(blocks)} "
-            f"({len(station_block)} stations × {len(parameter_block)} parameters, "
-            f"service is slow)",
-            file=sys.stderr,
+        log.info(
+            "query %d/%d (%d stations × %d parameters, service is slow)",
+            n,
+            len(blocks),
+            len(station_block),
+            len(parameter_block),
         )
         frame = _parse(
             _query(session, station_block, parameter_block, date_from, date_to),
@@ -214,6 +225,7 @@ def _fetch(
         if not frame.empty:
             frames.append(frame)
     if not frames:
+        log.warning("fetch returned no data for %s..%s", date_from, date_to)
         return pd.DataFrame()
 
     keys = ["code", "parameter"] if latest_only else ["code", "parameter", "timestamp"]

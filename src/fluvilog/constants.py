@@ -64,6 +64,9 @@ DEFAULT_INTERVAL = 600  # seconds between polls (source updates ~every 10 min)
 MIN_INTERVAL = 30  # floor enforced by --interval parsing
 DEFAULT_DB_PATH = "fluvilog.db"  # SQLite file, relative to cwd
 
+# Logging defaults.
+DEFAULT_LOG_LEVEL = "INFO"  # root level until --log-level / FLUVILOG_LOG_LEVEL
+
 # Window limits. The source's export only returns 10-min values for windows up
 # to 10 days; a longer window degrades to daily means
 MAX_LIST_WINDOW_DAYS = 10  # hard ceiling for one query's date span
