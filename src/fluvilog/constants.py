@@ -20,6 +20,12 @@ USER_AGENT = (
 MAX_STATIONS = 5
 MAX_PARAMETERS = 5
 
+# Outbound request rate cap.
+# REQUEST_BURST tokens absorb one poll's batched requests without throttling.
+# Sustained traffic is held to MAX_REQUESTS_PER_SECOND.
+MAX_REQUESTS_PER_SECOND = 1.0
+REQUEST_BURST = 20
+
 # The 9 official WGMN stations and their static reference data: name +
 # water_body, WGS84 position as (lat, lon) decimal degrees, and recording_since
 # (first reporting day — the earliest a backfill can reach). The form's checkbox

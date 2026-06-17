@@ -2,8 +2,11 @@
 
 import datetime as dt
 import logging
-from collections.abc import Iterable
+import threading
+import time
+from collections.abc import Callable, Iterable
 from itertools import batched
+from typing import Any
 from urllib.parse import urljoin
 
 import pandas as pd
@@ -13,8 +16,10 @@ from lxml.html import fromstring  # pyright: ignore[reportUnknownVariableType]
 from .constants import (
     ENCODING,
     MAX_PARAMETERS,
+    MAX_REQUESTS_PER_SECOND,
     MAX_STATIONS,
     PFX,
+    REQUEST_BURST,
     START,
     STATIONS,
     TIMEOUT,
@@ -22,6 +27,72 @@ from .constants import (
 )
 
 log = logging.getLogger(__name__)
+
+
+class RateLimiter:
+    """Thread-safe token-bucket rate limiter.
+
+    The bucket holds up to `capacity` tokens and refills at `rate` tokens per
+    second. acquire() consumes one token, blocking until one is available, so
+    the sustained call rate is capped at `rate` while bursts up to `capacity`
+    pass without delay.
+    """
+
+    def __init__(
+        self,
+        rate: float,
+        capacity: float,
+        *,
+        monotonic: Callable[[], float] = time.monotonic,
+        sleep: Callable[[float], None] = time.sleep,
+    ) -> None:
+        self._rate = rate
+        self._capacity = capacity
+        self._tokens = capacity
+        self._monotonic = monotonic
+        self._sleep = sleep
+        self._updated = monotonic()
+        self._lock = threading.Lock()
+
+    def acquire(self) -> None:
+        """Consume one token, blocking (via sleep) until one is available."""
+        while True:
+            with self._lock:
+                now = self._monotonic()
+                self._tokens = min(
+                    self._capacity, self._tokens + (now - self._updated) * self._rate
+                )
+                self._updated = now
+                # Tolerate float drift so an exactly-refilled token still counts.
+                if self._tokens + 1e-9 >= 1.0:
+                    self._tokens -= 1.0
+                    return
+                wait = (1.0 - self._tokens) / self._rate
+            self._sleep(wait)
+
+
+class _RateLimitedSession(requests.Session):
+    """requests.Session that gates every send() through a shared RateLimiter.
+
+    send() is the single funnel for all requests (including redirects), so the
+    limiter bounds the whole HTTP surface regardless of caller.
+    """
+
+    def __init__(self, limiter: RateLimiter) -> None:
+        super().__init__()
+        self._limiter = limiter
+
+    def send(
+        self, request: requests.PreparedRequest, **kwargs: Any
+    ) -> requests.Response:
+        """Throttle, then delegate to the base implementation."""
+        self._limiter.acquire()
+        return super().send(request, **kwargs)
+
+
+# Shared across every _fetch (and thus every backfill window), so the cap holds
+# over the whole process, not per request batch.
+_LIMITER = RateLimiter(MAX_REQUESTS_PER_SECOND, REQUEST_BURST)
 
 
 def _ffill(cells: list[str]) -> list[str]:
@@ -197,7 +268,7 @@ def _fetch(
     date_from = start.strftime("%d.%m.%Y")
     date_to = end.strftime("%d.%m.%Y")
 
-    session = requests.Session()
+    session = _RateLimitedSession(_LIMITER)
     session.headers["User-Agent"] = USER_AGENT
 
     index_of = _station_index_map(session)
