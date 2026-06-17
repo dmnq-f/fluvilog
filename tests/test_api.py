@@ -25,7 +25,7 @@ def test_stations(client: TestClient) -> None:
     assert resp.status_code == 200
     data = resp.json()
     assert len(data) == 9
-    assert all({"latitude", "longitude"} <= set(s) for s in data)
+    assert all({"latitude", "longitude", "recording_since"} <= set(s) for s in data)
 
 
 def test_latest_one_per_pair(client: TestClient) -> None:
