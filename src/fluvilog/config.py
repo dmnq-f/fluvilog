@@ -63,13 +63,14 @@ class EnvConfig:
     Coerced fields (`interval`, `api_port`, `log_level`) are kept as strings so
     the owning argument's `type=` performs coercion and error reporting, exactly
     as for a value typed on the command line. List fields are split on commas;
-    `stations` is None when unset, meaning "all stations".
+    `stations` and `parameters` are None when unset, meaning "all of them".
     """
 
     db: str
     interval: str
     max_catchup: str
     stations: list[str] | None
+    parameters: list[str] | None
     api_host: str
     api_port: str
     cors_origins: list[str]
@@ -103,6 +104,7 @@ def load() -> EnvConfig:
         interval=_get("INTERVAL") or str(DEFAULT_INTERVAL),
         max_catchup=_get("MAX_CATCHUP") or str(DEFAULT_MAX_CATCHUP_DAYS),
         stations=_split(_get("STATION")) or None,
+        parameters=_split(_get("PARAMETER")) or None,
         api_host=_get("API_HOST") or DEFAULT_API_HOST,
         api_port=_get("API_PORT") or str(DEFAULT_API_PORT),
         cors_origins=_split(_get("CORS_ORIGIN")),

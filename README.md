@@ -29,7 +29,7 @@ Once installed:
 ```sh
 uv run fluvilog list    # list stations (no egress here)
 uv run fluvilog once    # one-shot fetch and print
-uv run fluvilog         # Continuously fetch and store (default metrics, all stations)
+uv run fluvilog         # Continuously fetch and store (all parameters, all stations)
 uv run fluvilog backfill --from 2025-01-01   # fetch and store a historical range
 ```
 
@@ -48,6 +48,7 @@ overrides the environment, which overrides the built-in default.
 | `FLUVILOG_INTERVAL`    | `--interval`    | `600` (seconds; accepts `s`/`m`/`h` suffix)   |
 | `FLUVILOG_MAX_CATCHUP` | `--max-catchup` | `7` (days back-filled per poll on resume)     |
 | `FLUVILOG_STATION`     | `--station`     | all stations (comma-separated codes or names) |
+| `FLUVILOG_PARAMETER`   | `--parameter`   | all parameters (comma-separated names or 0-based indices) |
 | `FLUVILOG_API_HOST`    | `--host`        | `127.0.0.1`                                   |
 | `FLUVILOG_API_PORT`    | `--port`        | `8000`                                        |
 | `FLUVILOG_CORS_ORIGIN` | `--cors-origin` | none (comma-separated origins)                |

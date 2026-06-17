@@ -21,6 +21,7 @@ _VARS = [
     "FLUVILOG_INTERVAL",
     "FLUVILOG_MAX_CATCHUP",
     "FLUVILOG_STATION",
+    "FLUVILOG_PARAMETER",
     "FLUVILOG_API_HOST",
     "FLUVILOG_API_PORT",
     "FLUVILOG_CORS_ORIGIN",
@@ -41,6 +42,7 @@ def test_defaults_when_unset() -> None:
     assert env.interval == str(DEFAULT_INTERVAL)
     assert env.max_catchup == str(DEFAULT_MAX_CATCHUP_DAYS)
     assert env.stations is None
+    assert env.parameters is None
     assert env.api_host == DEFAULT_API_HOST
     assert env.api_port == str(DEFAULT_API_PORT)
     assert env.cors_origins == []
@@ -64,9 +66,11 @@ def test_blank_env_falls_back(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_list_values_split_on_commas(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("FLUVILOG_STATION", "BL, SH ,LB")
+    monkeypatch.setenv("FLUVILOG_PARAMETER", "Trübung, pH-Wert")
     monkeypatch.setenv("FLUVILOG_CORS_ORIGIN", "http://a.test,http://b.test")
     env = config.load()
     assert env.stations == ["BL", "SH", "LB"]
+    assert env.parameters == ["Trübung", "pH-Wert"]
     assert env.cors_origins == ["http://a.test", "http://b.test"]
 
 

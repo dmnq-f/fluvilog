@@ -24,7 +24,7 @@ import pandas as pd
 import requests
 
 from . import config
-from .constants import DEFAULT_PARAMETERS, MAX_LIST_WINDOW_DAYS, STATIONS
+from .constants import MAX_LIST_WINDOW_DAYS, PARAMETERS, STATIONS
 from .service import backfill, collect
 from .storage import IncompatibleSchemaError, SqliteStorage
 from .wgmn import fetch
@@ -60,6 +60,26 @@ def resolve_codes(selectors: list[str] | None) -> list[str]:
     return codes
 
 
+def resolve_parameters(selectors: list[str] | None) -> list[int]:
+    """Translate --parameter arguments to indices into PARAMETERS.
+
+    Each selector is a 0-based index or a case-insensitive name; absent
+    selectors mean all parameters. Unknown selectors are warned and skipped.
+    """
+    if not selectors:
+        return list(range(len(PARAMETERS)))
+    by_name = {name.casefold(): idx for idx, name in enumerate(PARAMETERS)}
+    idxs: list[int] = []
+    for sel in selectors:
+        if sel.isdigit() and int(sel) < len(PARAMETERS):
+            idxs.append(int(sel))
+        elif sel.casefold() in by_name:
+            idxs.append(by_name[sel.casefold()])
+        else:
+            log.warning("unknown parameter: %r", sel)
+    return idxs
+
+
 def _run_list() -> int:
     """Print the station catalogue and exit."""
     print("# Known WGMN stations:")
@@ -71,11 +91,12 @@ def _run_list() -> int:
 def _run_once(args: argparse.Namespace) -> int:
     """Fetch the latest values once, print them, and optionally write CSV."""
     codes = resolve_codes(args.station)
-    if not codes:
+    params = resolve_parameters(args.parameter)
+    if not codes or not params:
         return 2
 
     try:
-        df = fetch(codes, DEFAULT_PARAMETERS)
+        df = fetch(codes, params)
     except requests.RequestException as e:
         print(f"Network/HTTP error: {e}", file=sys.stderr)
         return 1
@@ -102,14 +123,15 @@ def _run_once(args: argparse.Namespace) -> int:
 def _run_collect(args: argparse.Namespace) -> int:
     """Run the continuous poll-and-store loop."""
     codes = resolve_codes(args.station)
-    if not codes:
+    params = resolve_parameters(args.parameter)
+    if not codes or not params:
         return 2
 
     try:
         with SqliteStorage(args.db) as store:
             return collect(
                 codes,
-                DEFAULT_PARAMETERS,
+                params,
                 store,
                 args.interval,
                 max_catchup_days=args.max_catchup,
@@ -125,7 +147,8 @@ def _run_collect(args: argparse.Namespace) -> int:
 def _run_backfill(args: argparse.Namespace) -> int:
     """Fetch and store a historical [--from, --to] range, chunked and idempotent."""
     codes = resolve_codes(args.station)
-    if not codes:
+    params = resolve_parameters(args.parameter)
+    if not codes or not params:
         return 2
 
     end = args.end or dt.date.today()
@@ -135,7 +158,7 @@ def _run_backfill(args: argparse.Namespace) -> int:
 
     try:
         with SqliteStorage(args.db) as store:
-            return backfill(codes, DEFAULT_PARAMETERS, store, args.start, end)
+            return backfill(codes, params, store, args.start, end)
     except IncompatibleSchemaError as e:
         log.error("%s", e)
         return 1
@@ -207,6 +230,16 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
         help="Only these stations (env: FLUVILOG_STATION)",
     )
     p_collect.add_argument(
+        "--parameter",
+        nargs="+",
+        metavar="NAME/INDEX",
+        default=env.parameters,
+        help=(
+            "Only these parameters, by name or 0-based index "
+            "(default: all; env: FLUVILOG_PARAMETER)"
+        ),
+    )
+    p_collect.add_argument(
         "--db",
         metavar="PATH",
         default=env.db,
@@ -262,6 +295,16 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
         help="Only these stations (env: FLUVILOG_STATION)",
     )
     p_backfill.add_argument(
+        "--parameter",
+        nargs="+",
+        metavar="NAME/INDEX",
+        default=env.parameters,
+        help=(
+            "Only these parameters, by name or 0-based index "
+            "(default: all; env: FLUVILOG_PARAMETER)"
+        ),
+    )
+    p_backfill.add_argument(
         "--db",
         metavar="PATH",
         default=env.db,
@@ -275,6 +318,16 @@ def build_parser(env: config.EnvConfig) -> argparse.ArgumentParser:
         metavar="CODE/NAME",
         default=env.stations,
         help="Only these stations (env: FLUVILOG_STATION)",
+    )
+    p_once.add_argument(
+        "--parameter",
+        nargs="+",
+        metavar="NAME/INDEX",
+        default=env.parameters,
+        help=(
+            "Only these parameters, by name or 0-based index "
+            "(default: all; env: FLUVILOG_PARAMETER)"
+        ),
     )
     p_once.add_argument("--csv", metavar="PATH", help="Write result to CSV")
 

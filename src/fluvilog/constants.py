@@ -56,8 +56,6 @@ PARAMETERS = [
     "UV-Absorption",
     "AlarmIndex",
 ]
-# Core parameters (water temp, O2 conc., O2 sat., pH, conductivity, turbidity).
-DEFAULT_PARAMETERS = [1, 2, 3, 4, 5, 6]
 
 # Collect-mode defaults.
 DEFAULT_INTERVAL = 600  # seconds between polls (source updates ~every 10 min)
