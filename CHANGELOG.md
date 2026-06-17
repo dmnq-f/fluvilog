@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.4.0](https://github.com/dmnq-f/fluvilog/compare/v0.3.0...v0.4.0) (2026-06-17)
+
+
+### Features
+
+* add configurable log level and broaden log coverage ([4662b67](https://github.com/dmnq-f/fluvilog/commit/4662b6782ed64c60edc22b6f6926d054b5526320))
+* **api:** add liveness and db readiness health endpoints ([7a56750](https://github.com/dmnq-f/fluvilog/commit/7a56750f0f31c9a63c4d024554fac00a2384d63e))
+* **api:** expose recording_since on station responses ([5fb1c71](https://github.com/dmnq-f/fluvilog/commit/5fb1c71072aba9e64e77b104ca0b227668ed1515))
+* select parameters via --parameter, default to all ([75669fa](https://github.com/dmnq-f/fluvilog/commit/75669faf3bf2585554fea6375abb30cefe87017e))
+
 ## [0.3.0](https://github.com/dmnq-f/fluvilog/compare/v0.2.0...v0.3.0) (2026-06-15)
 
 
