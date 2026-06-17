@@ -10,19 +10,20 @@ connection or its schema.
 # the type checker can't see; without this it flags them as unused.
 # pyright: reportUnusedFunction=false
 
+import sqlite3
 from collections.abc import Iterator
 from dataclasses import asdict
 from datetime import datetime, timedelta
 from typing import Annotated
 from zoneinfo import ZoneInfo
 
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from .. import catalogue
 from ..constants import BERLIN_TZ, MAX_WINDOW_DAYS, PARAMETERS, STATIONS
 from ..storage import SqliteStorage
-from .schemas import ReadingOut, StationOut
+from .schemas import HealthOut, ReadingOut, ReadyOut, StationOut
 
 _BERLIN = ZoneInfo(BERLIN_TZ)
 
@@ -52,6 +53,21 @@ def _validate_window(start: datetime, end: datetime) -> None:
         raise HTTPException(422, f"window exceeds the {MAX_WINDOW_DAYS}-day limit")
 
 
+def _db_reachable(db_path: str) -> bool:
+    """Whether the database can be opened read-only and queried right now."""
+    try:
+        store = SqliteStorage.open_readonly(db_path)
+    except sqlite3.Error:
+        return False
+    try:
+        store.ping()
+        return True
+    except sqlite3.Error:
+        return False
+    finally:
+        store.close()
+
+
 def create_app(*, db_path: str, allowed_origins: list[str]) -> FastAPI:
     """Build the read-only FastAPI app bound to a SQLite database path.
 
@@ -72,6 +88,17 @@ def create_app(*, db_path: str, allowed_origins: list[str]) -> FastAPI:
             yield store
         finally:
             store.close()
+
+    @app.get("/api/health")
+    def get_health() -> HealthOut:
+        return HealthOut()
+
+    @app.get("/api/ready")
+    def get_ready(response: Response) -> ReadyOut:
+        if _db_reachable(db_path):
+            return ReadyOut(db="ok")
+        response.status_code = status.HTTP_503_SERVICE_UNAVAILABLE
+        return ReadyOut(db="unavailable")
 
     @app.get("/api/stations")
     def get_stations() -> list[StationOut]:

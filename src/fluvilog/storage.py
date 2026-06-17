@@ -388,5 +388,12 @@ class SqliteStorage(Storage):
             for code, parameter, unit, timestamp, value in rows
         ]
 
+    def ping(self) -> None:
+        """Run a trivial query to confirm the connection is live and readable.
+
+        Raises sqlite3.Error if the database cannot be queried.
+        """
+        self._conn.execute("SELECT 1").fetchone()
+
     def close(self) -> None:
         self._conn.close()

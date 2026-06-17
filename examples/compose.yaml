@@ -41,12 +41,11 @@ services:
       - collect
     restart: unless-stopped
     healthcheck:
-      # /api/stations served from the static catalogue, healthy even before readings exist.
       test:
         - CMD
         - python
         - -c
-        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/stations")
+        - import urllib.request; urllib.request.urlopen("http://127.0.0.1:8000/api/health")
       interval: 30s
       timeout: 5s
       retries: 3

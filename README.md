@@ -42,17 +42,17 @@ Configuration arguments are provided to select specific stations, metrics, confi
 Every relevant flag has a `FLUVILOG_*` environment-variable equivalent. A flag
 overrides the environment, which overrides the built-in default.
 
-| Variable               | Flag            | Default                                       |
-| ---------------------- | --------------- | --------------------------------------------- |
-| `FLUVILOG_DB`          | `--db`          | `fluvilog.db`                                 |
-| `FLUVILOG_INTERVAL`    | `--interval`    | `600` (seconds; accepts `s`/`m`/`h` suffix)   |
-| `FLUVILOG_MAX_CATCHUP` | `--max-catchup` | `7` (days back-filled per poll on resume)     |
-| `FLUVILOG_STATION`     | `--station`     | all stations (comma-separated codes or names) |
+| Variable               | Flag            | Default                                                   |
+| ---------------------- | --------------- | --------------------------------------------------------- |
+| `FLUVILOG_DB`          | `--db`          | `fluvilog.db`                                             |
+| `FLUVILOG_INTERVAL`    | `--interval`    | `600` (seconds; accepts `s`/`m`/`h` suffix)               |
+| `FLUVILOG_MAX_CATCHUP` | `--max-catchup` | `7` (days back-filled per poll on resume)                 |
+| `FLUVILOG_STATION`     | `--station`     | all stations (comma-separated codes or names)             |
 | `FLUVILOG_PARAMETER`   | `--parameter`   | all parameters (comma-separated names or 0-based indices) |
-| `FLUVILOG_API_HOST`    | `--host`        | `127.0.0.1`                                   |
-| `FLUVILOG_API_PORT`    | `--port`        | `8000`                                        |
-| `FLUVILOG_CORS_ORIGIN` | `--cors-origin` | none (comma-separated origins)                |
-| `FLUVILOG_LOG_LEVEL`   | `--log-level`   | `INFO` (DEBUG/INFO/WARNING/ERROR/CRITICAL)    |
+| `FLUVILOG_API_HOST`    | `--host`        | `127.0.0.1`                                               |
+| `FLUVILOG_API_PORT`    | `--port`        | `8000`                                                    |
+| `FLUVILOG_CORS_ORIGIN` | `--cors-origin` | none (comma-separated origins)                            |
+| `FLUVILOG_LOG_LEVEL`   | `--log-level`   | `INFO` (DEBUG/INFO/WARNING/ERROR/CRITICAL)                |
 
 ### Gaps after downtime
 
@@ -85,6 +85,8 @@ uv run fluvilog serve-api --db water.db --cors-origin http://localhost:5173
 The API opens the database read-only per request, so it can run concurrently with
 `collect` (the single writer) under SQLite WAL. Endpoints:
 
+- `GET /api/health` — service liveness probe (`{"status": "ok"}`)
+- `GET /api/ready` — readiness probe; 200 when the database is reachable, 503 otherwise (`{"service": "ok", "db": "ok"}`)
 - `GET /api/stations` — station catalogue with WGS84 coordinates
 - `GET /api/readings/latest?station=&parameter=` — latest reading per series
 - `GET /api/readings?from=&to=&station=&parameter=` — readings in a window (≤30 days)

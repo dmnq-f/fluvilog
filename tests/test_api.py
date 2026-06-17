@@ -20,6 +20,26 @@ def client(seed: SimpleNamespace) -> TestClient:
     return TestClient(app)
 
 
+def test_health(client: TestClient) -> None:
+    resp = client.get("/api/health")
+    assert resp.status_code == 200
+    assert resp.json() == {"status": "ok"}
+
+
+def test_ready_db_reachable(client: TestClient) -> None:
+    resp = client.get("/api/ready")
+    assert resp.status_code == 200
+    assert resp.json() == {"service": "ok", "db": "ok"}
+
+
+def test_ready_db_unavailable(tmp_path: object) -> None:
+    missing = str(tmp_path / "absent.db")  # type: ignore[operator]
+    app = create_app(db_path=missing, allowed_origins=[])
+    resp = TestClient(app).get("/api/ready")
+    assert resp.status_code == 503
+    assert resp.json() == {"service": "ok", "db": "unavailable"}
+
+
 def test_stations(client: TestClient) -> None:
     resp = client.get("/api/stations")
     assert resp.status_code == 200
