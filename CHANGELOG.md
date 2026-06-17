@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.1](https://github.com/dmnq-f/fluvilog/compare/v0.5.0...v0.5.1) (2026-06-17)
+
+
+### Performance Improvements
+
+* **collect:** poll today-only when caught up ([9ad35c3](https://github.com/dmnq-f/fluvilog/commit/9ad35c3f3259849353119bd95ce090d37bab29d1))
+
 ## [0.5.0](https://github.com/dmnq-f/fluvilog/compare/v0.4.0...v0.5.0) (2026-06-17)
 
 
