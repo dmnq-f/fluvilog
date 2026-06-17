@@ -258,7 +258,7 @@ def _fetch(
 
     Splits the selection into blocks of <=5 (service limit). The date window is
     [start, end]; it defaults to yesterday→today. start/end must satisfy
-    start < end and span at most MAX_LIST_WINDOW_DAYS (a wider window degrades
+    start <= end and span at most MAX_LIST_WINDOW_DAYS (a wider window degrades
     to daily means upstream) — neither is enforced here; callers pass valid
     bounds. With latest_only the result has one row per (code, parameter);
     otherwise one row per (code, parameter, timestamp).

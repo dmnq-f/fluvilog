@@ -35,12 +35,9 @@ def test_gap_beyond_cap_is_clamped_to_cap() -> None:
     )
 
 
-def test_caught_up_today_still_spans_one_day() -> None:
-    # von < bis is required upstream, so even a same-day watermark looks back a day.
-    assert _catchup_window(_ts(TODAY), TODAY, cap_days=7) == (
-        TODAY - dt.timedelta(days=1),
-        TODAY,
-    )
+def test_caught_up_today_polls_single_day() -> None:
+    # The source accepts equal from/to bounds, so a same-day watermark polls today only.
+    assert _catchup_window(_ts(TODAY), TODAY, cap_days=7) == (TODAY, TODAY)
 
 
 def _days(n: int) -> dt.timedelta:

@@ -27,15 +27,15 @@ def _catchup_window(
 
     Resumes from the day of the latest stored reading so a gap back-fills, but
     reaches no further back than cap_days (a longer gap needs an explicit
-    backfill). Always spans at least one day, since the source requires
-    date_from < date_to. With no prior data, uses yesterday→today.
+    backfill). When caught up (watermark today) the window collapses to
+    today→today — the source accepts equal from/to bounds. With no prior data,
+    uses yesterday→today.
     """
-    yesterday = today - dt.timedelta(days=1)
     if latest is None:
-        return yesterday, today
+        return today - dt.timedelta(days=1), today
     floor = today - dt.timedelta(days=cap_days)
     start = max(latest.date(), floor)
-    return min(start, yesterday), today
+    return min(start, today), today
 
 
 def collect(
