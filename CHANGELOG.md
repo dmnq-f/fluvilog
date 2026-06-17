@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/dmnq-f/fluvilog/compare/v0.4.0...v0.5.0) (2026-06-17)
+
+
+### Features
+
+* **wgmn:** cap outbound request rate with a token bucket ([31ad190](https://github.com/dmnq-f/fluvilog/commit/31ad190ff72c1565964e5e468a2d867a5529bd42))
+
 ## [0.4.0](https://github.com/dmnq-f/fluvilog/compare/v0.3.0...v0.4.0) (2026-06-17)
 
 
