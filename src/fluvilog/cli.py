@@ -19,6 +19,7 @@ import datetime as dt
 import logging
 import sqlite3
 import sys
+from typing import Any
 
 import pandas as pd
 import requests
@@ -32,6 +33,9 @@ from .wgmn import fetch
 _COMMANDS = {"collect", "once", "list", "serve-api", "backfill"}
 
 log = logging.getLogger(__name__)
+
+_LOG_FORMAT = "%(asctime)s %(levelname)s %(message)s"
+_LOG_DATEFMT = "%Y-%m-%d %H:%M:%S"
 
 
 def _iso_date(text: str) -> dt.date:
@@ -167,6 +171,28 @@ def _run_backfill(args: argparse.Namespace) -> int:
         return 1
 
 
+def _uvicorn_log_config() -> dict[str, Any]:
+    """Clone uvicorn's default logging config with timestamps matching the CLI.
+
+    Rewrites the `default` and `access` formatters to the `main`/`collect` format
+    so the API's startup and access logs read consistently across both services.
+    Call only after uvicorn imports successfully (the [api] extra owns it).
+    """
+    import copy
+
+    from uvicorn.config import LOGGING_CONFIG
+
+    log_config = copy.deepcopy(LOGGING_CONFIG)
+    formatters = log_config["formatters"]
+    formatters["default"]["fmt"] = _LOG_FORMAT
+    formatters["default"]["datefmt"] = _LOG_DATEFMT
+    formatters["access"]["fmt"] = _LOG_FORMAT.replace(
+        "%(message)s", '%(client_addr)s - "%(request_line)s" %(status_code)s'
+    )
+    formatters["access"]["datefmt"] = _LOG_DATEFMT
+    return log_config
+
+
 def _run_serve_api(args: argparse.Namespace) -> int:
     """Serve the HTTP read API under uvicorn (requires the optional [api] extra).
 
@@ -184,7 +210,7 @@ def _run_serve_api(args: argparse.Namespace) -> int:
         return 1
 
     app = create_app(db_path=args.db, allowed_origins=args.cors_origin)
-    uvicorn.run(app, host=args.host, port=args.port)
+    uvicorn.run(app, host=args.host, port=args.port, log_config=_uvicorn_log_config())
     return 0
 
 
@@ -382,8 +408,8 @@ def main(argv: list[str] | None = None) -> int:
 
     logging.basicConfig(
         level=args.log_level,
-        format="%(asctime)s %(levelname)s %(message)s",
-        datefmt="%Y-%m-%d %H:%M:%S",
+        format=_LOG_FORMAT,
+        datefmt=_LOG_DATEFMT,
         stream=sys.stderr,
     )
 
