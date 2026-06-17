@@ -3,7 +3,8 @@
 
 # OS / IDEs
 .DS_Store
-.vscode/settings.json
+.vscode/*
+!.vscode/*.example
 
 # Byte-compiled / caches
 __pycache__/
