@@ -13,7 +13,7 @@ license = "AGPL-3.0-only"
 license-files = ["LICENSE"]
 keywords = ["hamburg", "water-quality", "wgmn", "environmental-data", "hydrology"]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Education",
     "Intended Audience :: End Users/Desktop",
     "Intended Audience :: Science/Research",
