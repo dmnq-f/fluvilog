@@ -9,6 +9,7 @@ pytest.importorskip("fastapi")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
+from fluvilog import __version__  # noqa: E402
 from fluvilog.api import create_app  # noqa: E402
 
 TEN = dt.timedelta(minutes=10)
@@ -23,7 +24,7 @@ def client(seed: SimpleNamespace) -> TestClient:
 def test_health(client: TestClient) -> None:
     resp = client.get("/api/health")
     assert resp.status_code == 200
-    assert resp.json() == {"status": "ok"}
+    assert resp.json() == {"status": "ok", "version": __version__}
 
 
 def test_ready_db_reachable(client: TestClient) -> None:

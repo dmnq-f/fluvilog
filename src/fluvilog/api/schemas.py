@@ -15,9 +15,11 @@ class HealthOut(BaseModel):
 
     Reports nothing about the database — the API is considered alive whenever it
     serves HTTP, independent of whether any readings have been written yet.
+    version is the running fluvilog package version (build metadata, not state).
     """
 
     status: Literal["ok"] = "ok"
+    version: str
 
 
 class ReadyOut(BaseModel):

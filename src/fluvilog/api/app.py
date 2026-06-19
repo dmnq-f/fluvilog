@@ -20,7 +20,7 @@ from zoneinfo import ZoneInfo
 from fastapi import Depends, FastAPI, HTTPException, Query, Response, status
 from fastapi.middleware.cors import CORSMiddleware
 
-from .. import catalogue
+from .. import __version__, catalogue
 from ..constants import BERLIN_TZ, MAX_WINDOW_DAYS, PARAMETERS, STATIONS
 from ..storage import SqliteStorage
 from .schemas import HealthOut, ReadingOut, ReadyOut, StationOut
@@ -74,7 +74,7 @@ def create_app(*, db_path: str, allowed_origins: list[str]) -> FastAPI:
     allowed_origins seeds CORS (GET only); an empty list permits no cross-origin
     request. db_path is opened read-only per request; the schema is never touched.
     """
-    app = FastAPI(title="fluvilog API", version="0.1.0")
+    app = FastAPI(title="fluvilog API", version=__version__)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=allowed_origins,
@@ -91,7 +91,7 @@ def create_app(*, db_path: str, allowed_origins: list[str]) -> FastAPI:
 
     @app.get("/api/health")
     def get_health() -> HealthOut:
-        return HealthOut()
+        return HealthOut(version=__version__)
 
     @app.get("/api/ready")
     def get_ready(response: Response) -> ReadyOut:
