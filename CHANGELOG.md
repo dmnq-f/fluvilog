@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/dmnq-f/fluvilog/compare/v0.5.1...v0.6.0) (2026-06-19)
+
+
+### Features
+
+* **api:** report package version in /api/health ([f482ef2](https://github.com/dmnq-f/fluvilog/commit/f482ef2953f56f8ea04b7349e36d11cad99f3616))
+
+
+### Bug Fixes
+
+* **serve-api:** apply timestamped log format to uvicorn ([23b86f4](https://github.com/dmnq-f/fluvilog/commit/23b86f4caf1338158f02cd40a7de2f24cb7b7f2d))
+
 ## [0.5.1](https://github.com/dmnq-f/fluvilog/compare/v0.5.0...v0.5.1) (2026-06-17)
 
 
