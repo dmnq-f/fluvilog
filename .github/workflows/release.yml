@@ -34,7 +34,7 @@ jobs:
       id-token: write
       contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: astral-sh/setup-uv@v8.2.0
@@ -49,7 +49,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ needs.release-please.outputs.tag_name }}
       - uses: docker/setup-qemu-action@v4
