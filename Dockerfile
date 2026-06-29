@@ -3,7 +3,7 @@
 ARG BASE_IMAGE=python:3.13-slim-trixie
 
 # Dedicated alias for the pinned uv release image, binary copied into the builder below.
-FROM ghcr.io/astral-sh/uv:0.11.21 AS uv
+FROM ghcr.io/astral-sh/uv:0.11.25 AS uv
 
 # ---- builder: resolve the locked deps into a self-contained /app/.venv ----
 FROM ${BASE_IMAGE} AS builder
